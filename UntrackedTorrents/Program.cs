@@ -1,5 +1,5 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using UntrackedTorrents.Enums;
+using UntrackedTorrents.Models;
 
 namespace UntrackedTorrents;
 
@@ -7,8 +7,13 @@ public class UntrackedTorrents
 {
     public static async Task Main()
     {
-        var qBitTorrentClient = new QBitTorrentClient("http://10.10.1.7:8080", "<USER>", "<PASSWORD>");
-        if (!await qBitTorrentClient.Login().ConfigureAwait(false)) throw new Exception("Failed to login to qBitTorrent.");
+        var configurationSetup = new ConfigurationSetup();
+        var configuration = configurationSetup.GetConfiguration();
+        if (configuration is null) throw new Exception("Failed to load configuration. Delete the configuration and run this again");
+
+        var qBitTorrentClient = new QBitTorrentClient(configuration.BaseUrl, configuration.Username, configuration.Password);
+        var loginSuccess = await qBitTorrentClient.Login().ConfigureAwait(false);
+        if (!loginSuccess) throw new Exception("Failed to login to qBitTorrent");
 
         var torrents = await qBitTorrentClient.GetTorrentList().ConfigureAwait(false);
         if (torrents is null) throw new NullReferenceException("Failed to retrieve torrent list, or no torrents found");
@@ -46,93 +51,30 @@ public class UntrackedTorrents
 
     private static void PrintResult(IEnumerable<Torrent> torrents)
     {
+        Console.WriteLine("========================");
+        Console.WriteLine(" Untracked Torrents");
+        Console.WriteLine(" By Amos - Discord: ayymoss");
+        Console.WriteLine("========================");
+
         var badTorrents = torrents.ToList();
         if (badTorrents.Count is 0)
         {
             Console.WriteLine("No bad torrents found.");
-            return;
+        }
+        else
+        {
+            Console.WriteLine("\nBad torrents\n========================");
+            foreach (var torrent in badTorrents)
+            {
+                Console.WriteLine($"Name: {torrent.Name}");
+                Console.WriteLine($"Hash: {torrent.Hash}");
+                Console.WriteLine($"Reason: {torrent.FailReason}");
+            }
+
+            Console.WriteLine($"========================\nTotal: {badTorrents.Count}");
         }
 
-        Console.WriteLine("\nBad torrents\n========================");
-        foreach (var torrent in badTorrents)
-        {
-            Console.WriteLine($"Name: {torrent.Name}");
-            Console.WriteLine($"Hash: {torrent.Hash}");
-            Console.WriteLine($"Reason: {torrent.FailReason}");
-        }
-
-        Console.WriteLine($"========================\nTotal: {badTorrents.Count}");
+        Console.WriteLine("\nPress any key to exit.");
+        Console.ReadKey();
     }
-}
-
-internal class QBitTorrentClient(string baseUrl, string username, string password)
-{
-    private readonly HttpClient _client = new();
-
-    public async Task<bool> Login()
-    {
-        var data = new Dictionary<string, string>
-        {
-            {"username", username},
-            {"password", password}
-        };
-
-        var content = new FormUrlEncodedContent(data);
-        var response = await _client.PostAsync($"{baseUrl}/api/v2/auth/login", content);
-
-        return response.IsSuccessStatusCode;
-    }
-
-    public async Task<IEnumerable<Torrent>?> GetTorrentList()
-    {
-        var response = await _client.GetAsync($"{baseUrl}/api/v2/torrents/info");
-        if (!response.IsSuccessStatusCode) throw new HttpRequestException("Unable to retrieve torrent list.");
-
-        var content = await response.Content.ReadAsStringAsync();
-        var torrents = JsonSerializer.Deserialize<List<Torrent>>(content);
-        return torrents;
-    }
-
-    public async Task<IEnumerable<TorrentTracker>?> GetTrackersForTorrent(string torrentHash)
-    {
-        var response = await _client.GetAsync($"{baseUrl}/api/v2/torrents/trackers?hash=" + torrentHash);
-        if (!response.IsSuccessStatusCode) throw new HttpRequestException($"Unable to retrieve trackers for torrent {torrentHash}.");
-
-        var content = await response.Content.ReadAsStringAsync();
-        var trackers = JsonSerializer.Deserialize<List<TorrentTracker>>(content);
-        return trackers;
-    }
-}
-
-public class Torrent
-{
-    [JsonIgnore] public bool Public { get; set; }
-    [JsonIgnore] public FailReason FailReason { get; set; }
-    [JsonIgnore] public IEnumerable<TorrentTracker> Trackers { get; set; }
-    [JsonPropertyName("name")] public string Name { get; set; }
-    [JsonPropertyName("hash")] public string Hash { get; set; }
-}
-
-public class TorrentTracker
-{
-    [JsonPropertyName("url")] public string Url { get; set; }
-    [JsonPropertyName("status")] public TorrentTrackerStatus Status { get; set; }
-    [JsonPropertyName("tier")] public int Tier { get; set; }
-    [JsonPropertyName("msg")] public string Message { get; set; }
-}
-
-public enum TorrentTrackerStatus
-{
-    Unknown = 0,
-    NotContacted = 1,
-    Working = 2,
-    Updating = 3,
-    NotWorking = 4
-}
-
-public enum FailReason
-{
-    Unknown,
-    PrivateNoWorkingTrackers,
-    PrivateTorrentNotRegistered,
 }
