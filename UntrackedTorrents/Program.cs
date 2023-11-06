@@ -5,8 +5,6 @@ namespace UntrackedTorrents;
 
 public class UntrackedTorrents
 {
-    private const int BatchSize = 100;
-
     public static async Task Main()
     {
         var configurationSetup = new ConfigurationSetup();
@@ -23,14 +21,14 @@ public class UntrackedTorrents
         if (torrents is null) throw new NullReferenceException("Failed to retrieve torrent list, or no torrents found");
 
         var torrentsList = torrents.ToList();
-        var torrentBatches = SplitList(torrentsList, BatchSize);
+        var torrentBatches = SplitList(torrentsList, configuration.BatchSize);
         var badTorrents = new List<Torrent>();
 
-        Console.WriteLine($"\nProcessing {torrentsList.Count} torrents in {torrentBatches.Count} batches.");
+        Console.WriteLine($"\nProcessing {torrentsList.Count:N0} torrents in {torrentBatches.Count:N0} batches.");
 
         for (var i = 0; i < torrentBatches.Count; i++)
         {
-            Console.WriteLine($"Processing batch {i + 1}/{torrentBatches.Count}");
+            Console.WriteLine($"Processing batch {i + 1:N0}/{torrentBatches.Count:N0}");
             var processTasks = torrentBatches[i].Select(torrent => ProcessTorrentAsync(qBitTorrentClient, torrent)).ToList();
             var batchResults = (await Task.WhenAll(processTasks)).SelectMany(x => x).ToList();
             badTorrents.AddRange(batchResults);
@@ -50,7 +48,7 @@ public class UntrackedTorrents
         torrent.Public = trackerList.Any(x => x.Tier == 0 && x.Status != TorrentTrackerStatus.Unknown);
         torrent.FailReason = DetermineFailReason(trackerList, torrent.Public);
 
-        return torrent.FailReason != FailReason.Unknown ? new[] {torrent} : Enumerable.Empty<Torrent>();
+        return torrent.FailReason is not FailReason.Unknown ? new[] {torrent} : Enumerable.Empty<Torrent>();
     }
 
     private static FailReason DetermineFailReason(IReadOnlyCollection<TorrentTracker> trackers, bool isPublic)
@@ -97,7 +95,7 @@ public class UntrackedTorrents
                 Console.WriteLine($"Reason: {torrent.FailReason}");
             }
 
-            Console.WriteLine($"\nTotal: {badTorrents.Count}");
+            Console.WriteLine($"\nTotal: {badTorrents.Count:N0}");
         }
 
         Console.WriteLine("\nPress any key to exit.");
