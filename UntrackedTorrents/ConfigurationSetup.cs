@@ -15,7 +15,6 @@ public class ConfigurationSetup
 #else
         var workingDirectory = Directory.GetCurrentDirectory();
 #endif
-        Console.WriteLine(workingDirectory);
         if (workingDirectory is null) throw new NullReferenceException("Unable to retrieve working directory.");
 
         Configuration? configuration;
