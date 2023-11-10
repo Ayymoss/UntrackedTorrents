@@ -1,4 +1,4 @@
-﻿namespace UntrackedTorrents;
+﻿namespace UntrackedTorrents.Models;
 
 public class Configuration
 {

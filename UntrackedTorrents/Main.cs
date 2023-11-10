@@ -3,21 +3,16 @@ using UntrackedTorrents.Models;
 
 namespace UntrackedTorrents;
 
-public class UntrackedTorrents
+public class Main(Configuration configuration, QBitTorrentClient client)
 {
-    public static async Task Main()
+    public async Task Run()
     {
-        var configurationSetup = new ConfigurationSetup();
-        var configuration = configurationSetup.GetConfiguration();
-        if (configuration is null) throw new Exception("Failed to load configuration. Delete the configuration and run this again");
-
-        var qBitTorrentClient = new QBitTorrentClient(configuration.BaseUrl, configuration.Username, configuration.Password);
         Console.WriteLine("Logging in to qBitTorrent...");
-        var loginSuccess = await qBitTorrentClient.Login().ConfigureAwait(false);
+        var loginSuccess = await client.Login().ConfigureAwait(false);
         if (!loginSuccess) throw new Exception("Failed to login to qBitTorrent");
 
         Console.WriteLine("Retrieving torrent list...");
-        var torrents = await qBitTorrentClient.GetTorrentList().ConfigureAwait(false);
+        var torrents = await client.GetTorrentList().ConfigureAwait(false);
         if (torrents is null) throw new NullReferenceException("Failed to retrieve torrent list, or no torrents found");
 
         var torrentsList = torrents.ToList();
@@ -29,7 +24,7 @@ public class UntrackedTorrents
         for (var i = 0; i < torrentBatches.Count; i++)
         {
             Console.WriteLine($"Processing batch {i + 1:N0}/{torrentBatches.Count:N0}");
-            var processTasks = torrentBatches[i].Select(torrent => ProcessTorrentAsync(qBitTorrentClient, torrent)).ToList();
+            var processTasks = torrentBatches[i].Select(ProcessTorrentAsync).ToList();
             var batchResults = (await Task.WhenAll(processTasks)).SelectMany(x => x).ToList();
             badTorrents.AddRange(batchResults);
         }
@@ -37,7 +32,7 @@ public class UntrackedTorrents
         PrintResult(badTorrents);
     }
 
-    private static async Task<IEnumerable<Torrent>> ProcessTorrentAsync(QBitTorrentClient client, Torrent torrent)
+    private async Task<IEnumerable<Torrent>> ProcessTorrentAsync(Torrent torrent)
     {
         var trackers = await client.GetTrackersForTorrent(torrent.Hash).ConfigureAwait(false) ?? Enumerable.Empty<TorrentTracker>();
         var trackerList = trackers.ToList();

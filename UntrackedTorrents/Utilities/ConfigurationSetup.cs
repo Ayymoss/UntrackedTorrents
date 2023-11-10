@@ -1,7 +1,8 @@
 ﻿using System.Reflection;
 using System.Text.Json;
+using UntrackedTorrents.Models;
 
-namespace UntrackedTorrents;
+namespace UntrackedTorrents.Utilities;
 
 public class ConfigurationSetup
 {

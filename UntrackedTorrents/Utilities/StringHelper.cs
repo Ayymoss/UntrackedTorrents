@@ -1,4 +1,6 @@
-﻿namespace UntrackedTorrents;
+﻿using System;
+
+namespace UntrackedTorrents.Utilities;
 
 public static class StringHelper
 {
