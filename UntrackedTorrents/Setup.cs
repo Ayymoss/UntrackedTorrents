@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console;
 using UntrackedTorrents.Utilities;
 
 namespace UntrackedTorrents;

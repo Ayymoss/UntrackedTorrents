@@ -7,36 +7,26 @@ public class QBitTorrentClient(Configuration configuration)
 {
     private readonly HttpClient _client = new();
 
-    public async Task<bool> Login()
+    public async Task Login()
     {
-        try
+        var data = new Dictionary<string, string>
         {
-            var data = new Dictionary<string, string>
-            {
-                {"username", configuration.Username},
-                {"password", configuration.Password}
-            };
+            {"username", configuration.Username},
+            {"password", configuration.Password}
+        };
 
-            var content = new FormUrlEncodedContent(data);
-            var response = await _client.PostAsync($"{configuration.BaseUrl}/api/v2/auth/login", content);
-
-            return response.IsSuccessStatusCode;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-        }
-
-        return false;
+        var content = new FormUrlEncodedContent(data);
+        var response = await _client.PostAsync($"{configuration.BaseUrl}/api/v2/auth/login", content);
+        response.EnsureSuccessStatusCode();
     }
 
-    public async Task<IEnumerable<Torrent>?> GetTorrentList()
+    public async Task<List<Torrent>> GetTorrentList()
     {
         var response = await _client.GetAsync($"{configuration.BaseUrl}/api/v2/torrents/info");
-        if (!response.IsSuccessStatusCode) throw new HttpRequestException("Unable to retrieve torrent list.");
-
+        response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        var torrents = JsonSerializer.Deserialize<List<Torrent>>(content);
+        var torrents = JsonSerializer.Deserialize<List<Torrent>>(content) ?? new List<Torrent>();
+        if (torrents.Count is 0) throw new Exception("No torrents found.");
         return torrents;
     }
 
