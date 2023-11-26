@@ -1,4 +1,7 @@
-﻿namespace UntrackedTorrents.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace UntrackedTorrents.Models;
+
 
 public class Configuration
 {

@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Text.Json;
 using Spectre.Console;
 using UntrackedTorrents.Models;
@@ -7,7 +8,6 @@ namespace UntrackedTorrents.Utilities;
 
 public class ConfigurationSetup
 {
-    private readonly JsonSerializerOptions _jsonOptions = new() {WriteIndented = true};
     private const string ConfigurationName = "TrackerConfiguration.json";
 
     public Configuration? GetConfiguration()
@@ -28,7 +28,7 @@ public class ConfigurationSetup
         }
 
         var configurationJson = File.ReadAllText(configurationFile);
-        configuration = JsonSerializer.Deserialize<Configuration>(configurationJson);
+        configuration = JsonSerializer.Deserialize(configurationJson, SourceGenerationContextWriteIndented.Default.Configuration);
         return configuration;
     }
 
@@ -50,7 +50,7 @@ public class ConfigurationSetup
         if (configuration.BaseUrl.EndsWith('/'))
             configuration.BaseUrl = configuration.BaseUrl[..^1];
 
-        var configurationJson = JsonSerializer.Serialize(configuration, _jsonOptions);
+        var configurationJson = JsonSerializer.Serialize(configuration, SourceGenerationContextWriteIndented.Default.Configuration);
         var configurationFile = Path.Combine(workingDirectory, ConfigurationName);
         File.WriteAllText(configurationFile, configurationJson);
 

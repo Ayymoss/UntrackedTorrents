@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using UntrackedTorrents.Models;
+using UntrackedTorrents.Utilities;
 
 namespace UntrackedTorrents;
 
@@ -25,7 +26,7 @@ public class QBitTorrentClient(Configuration configuration)
         var response = await _client.GetAsync($"{configuration.BaseUrl}/api/v2/torrents/info");
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        var torrents = JsonSerializer.Deserialize<List<Torrent>>(content) ?? new List<Torrent>();
+        var torrents = JsonSerializer.Deserialize(content, SourceGenerationContext.Default.ListTorrent) ?? new List<Torrent>();
         if (torrents.Count is 0) throw new Exception("No torrents found.");
         return torrents;
     }
@@ -36,7 +37,7 @@ public class QBitTorrentClient(Configuration configuration)
         if (!response.IsSuccessStatusCode) throw new HttpRequestException($"Unable to retrieve trackers for torrent {torrentHash}.");
 
         var content = await response.Content.ReadAsStringAsync();
-        var trackers = JsonSerializer.Deserialize<List<TorrentTracker>>(content);
+        var trackers = JsonSerializer.Deserialize(content, SourceGenerationContext.Default.ListTorrentTracker);
         return trackers;
     }
 }
